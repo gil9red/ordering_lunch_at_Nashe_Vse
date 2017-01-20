@@ -1,0 +1,67 @@
+table.base {
+	font-family: verdana,arial,sans-serif;
+	font-size: 17px;
+	color: #333333;
+	border-spacing: 0px;
+}
+table.menu {
+	/* Максимальная ширина таблицы и фиксация границ,
+	   благодаря которой работает перенос строк в ячейках
+	*/
+	table-layout: fixed;
+	/*max-width: 80%;*/
+	width: 100%;
+}
+table th {
+    border-width: 1px;
+    padding: 8px;
+	border-style: solid;
+	border-color: #666666;
+	background-color: #dedede;
+    text-align: left;
+}
+table td.empty {
+    border-width: 0px;
+}
+table th.header {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #666666;
+	background-color: #dedede;
+	text-align: center;
+}
+table th.total {
+    vertical-align: top;
+}
+
+table td {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #666666;
+	/*background-color: #ffffff;*/
+}
+table tr.selected {
+    background-color: #a5cbfa;
+}
+
+.category {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+#footer {
+    position: fixed; /* Фиксированное положение */
+    left: 0; bottom: 0; /* Левый нижний угол */
+    padding: 5px; /* Поля вокруг текста */
+    background: #666666; /* Цвет фона */
+    color: #fff; /* Цвет текста */
+    width: 100%; /* Ширина слоя */
+}
+
+table.mail_info td {
+    border-width: 0px;
+    border:none none;
+    vertical-align: top;
+}

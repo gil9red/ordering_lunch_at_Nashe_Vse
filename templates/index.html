@@ -1,0 +1,207 @@
+<html>
+    <head>
+        <title>{{ subject }}</title>
+        <link rel="stylesheet" href="{{url_for('static', filename='style.css') }}">
+
+        <script type="text/javascript" src="{{url_for('static', filename='js/jquery.js') }}"></script>
+        <script type="text/javascript" src="{{url_for('static', filename='js/notify.min.js') }}"></script>
+        <script>
+            $(document).ready(function(){
+                {% if need_to_show_message_on_ready %}
+                    console.debug("show_message_on_ready");
+
+                    var message_text = '{{ message }}';
+
+                    try {
+                        $.notify(
+                            message_text,
+                            "success"
+                        );
+
+                    } catch (err) {
+                        alert(message_text);
+                        console.error("При показе уведомления возникла ошибка:\n" + err);
+                    }
+
+                {% endif %}
+            });
+
+        </script>
+
+    </head>
+
+    <body>
+        <form id="form" method="post">
+            <table id="menu" class="base menu">
+                <caption>{{ subject }} <small>(Меню получено: {{ date }})</small><br><br></caption>
+                <tr><th class="header">Название</th><th class="header">Вес</th><th class="header">Цена</th></tr>
+                {% for row in rows %}
+                    {% if row.is_item %}
+                        <tr {% if row.is_selected %} class="selected" {% endif %}>
+                            <td>
+                                <input type="checkbox"
+                                    name="select_{{ row.id }}"
+                                    value="{{ row.id }}"
+
+                                    {% if row.is_selected %}
+                                        checked
+                                    {% endif %}
+                                />
+                                {{ row.name }}
+                            </td>
+                            <td>{{ row.weight }}</td>
+                            <td>{{ row.price }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td class="category" colspan="{{ column_count }}">{{ row.category }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                <tr>
+                    <td class="category" colspan="{{ column_count }}">Дополнительно</td>
+                </tr>
+                <tr>
+                    <td colspan="{{ column_count }}">
+                        <textarea id="additionally_text" name="additionally_text">{{ user.additionally }}</textarea>
+                    </td>
+                </tr>
+
+                <tr><td class="empty" colspan="{{ column_count }}"></td></tr>
+
+                {% if selected_rows|length > 0 or user.has_additionally() %}
+                    <tr><th colspan="{{ column_count }}">Мой выбор
+                            <img class="clip_button" src="{{url_for('static', filename='images/copy.svg') }}"
+                                 alt="Скопировать выбранное меню в буфер обмена" title="Скопировать выбранное меню в буфер обмена" height="16" width="16">:
+                        </th></tr>
+                    {% for row in selected_rows %}
+                        <tr>
+                            <td class="selected_lunch_item">{{ row.name }}</td>
+                            <td>{{ row.weight }}</td>
+                            <td>{{ row.price }}</td>
+                        </tr>
+                    {% endfor %}
+
+                    {% if user.has_additionally() %}
+                        <tr>
+                            <td style="white-space:pre" class="selected_lunch_item"
+                                colspan="{{ column_count }}">{{ user.additionally }}</td>
+                        </tr>
+                    {% endif %}
+
+                    <tr>
+                        <th class="total">Итог:</th>
+                        <th class="total">
+                            {% for item in total_weights %}
+                                {{ item }}
+                                <br />
+                            {% endfor %}
+                        </th>
+                        <th class="total">
+                            {% for item in total_prices %}
+                                {{ item }}
+                                <br />
+                            {% endfor %}
+                        </th>
+                    </tr>
+                {% endif %}
+            </table>
+        </form>
+
+        <!-- For copy to clipboard -->
+        <script type="text/javascript" src="{{url_for('static', filename='js/ZeroClipboard.min.js') }}"></script>
+        <script type="text/javascript">
+            var client = new ZeroClipboard( $('.clip_button') );
+
+            client.on('ready',
+                function(event) {
+                    // console.log( 'movie is loaded' );
+
+                    client.on('copy',
+                        function(event) {
+                            var text = "";
+                            $(".selected_lunch_item").each(
+                                function() {
+                                    text += $(this).text() + "\n";
+                                }
+                            );
+                            event.clipboardData.setData('text/plain', text);
+
+                            var message_text = 'В буфер обмена скопировано:\n\n' + text
+
+                            try {
+                                // Показываем уведомление рядом с кнопкой копирования в буфер
+                                $(".clip_button").notify(
+                                    message_text,
+                                    {
+                                        position: "top left",
+                                        className: "success",
+                                        autoHideDelay: 3000,
+                                    }
+                                );
+
+                            } catch (err) {
+                                console.log(err)
+                                alert(message_text);
+                            }
+                        }
+                    );
+
+                    client.on('aftercopy',
+                        function(event) {
+                            console.log('Copied text to clipboard: ' + event.data['text/plain']);
+                        }
+                    );
+                }
+            );
+
+            client.on('error',
+                function(event) {
+                    // console.log( 'ZeroClipboard error of type "' + event.name + '": ' + event.message );
+                    ZeroClipboard.destroy();
+                }
+            );
+        </script>
+        <script>
+            function rowClickTableMenu() {
+                var table = document.getElementById("menu");
+                var rows = table.getElementsByTagName("tr");
+                for (i = 0; i < rows.length; i++) {
+                    var currentRow = table.rows[i];
+                    var createClickHandler =
+                        function(row)
+                        {
+                            return function() {
+                                var cell = row.getElementsByTagName("td")[0];
+                                if (cell == undefined || cell == null || cell.firstElementChild == null) {
+                                    return;
+                                }
+
+                                // Меняем состояние checkbox и class строки, чтобы поменять ее цвет
+                                checked = !cell.firstElementChild.checked;
+
+// TODO: при клике на checkbox происходит фигня
+//                                cell.firstElementChild.checked = checked;
+//                                cell.parentElement.className = checked ? "selected" : "";
+                            };
+                        };
+
+                    currentRow.onclick = createClickHandler(currentRow);
+                }
+            }
+
+            $(document).ready(rowClickTableMenu);
+        </script>
+
+        <div id="footer">
+            <input type="submit" value="Мой выбор блюд" form="form">
+            <a href="/link">Url файл</a>
+            {% if is_admin %}
+                <a href="/admin">Страница админа</a>
+            {% endif %}
+        </div>
+
+        <!-- Чтобы div#footer не загораживал последние строки таблицы -->
+        <br><br>
+    </body>
+</html>

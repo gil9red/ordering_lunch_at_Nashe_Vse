@@ -1,0 +1,200 @@
+<html>
+    <head>
+        <title>{{ title }}</title>
+
+        <link rel="stylesheet" href="{{url_for('static', filename='style.css') }}">
+        <script type="text/javascript" src="{{url_for('static', filename='js/jquery.js') }}"></script>
+        <script type="text/javascript" src="{{url_for('static', filename='js/notify.min.js') }}"></script>
+        <script>
+            // Функция для определения, что на кнопку отправки письма можно кликать
+            function enabled_send_email_button() {
+                var email_text = $("#email_text");
+
+                // Если текст письма пустой или ни один пользователь не выбран
+                var disabled = email_text.val().length == 0 || $("#today_users_lunch :checked").length == 0;
+
+                console.debug("Отключение кнопки отправки: " + disabled);
+                $("#send_email").prop( "disabled", disabled );
+            }
+
+            function fill_email_text() {
+                console.debug("fill_email_text");
+                $("#email_text").text('{{ email_header }}');
+
+                var i = 1;
+                $("#today_users_lunch :checked").each(
+                    function() {
+                        $("#email_text").append(
+                            i + ".\n" + $(this).val() + "\n\n"
+                        );
+                        i += 1;
+                    }
+                );
+
+                $("#email_text").append('{{ email_footer }}');
+
+                enabled_send_email_button();
+            }
+
+            $(document).ready(function(){
+                fill_email_text();
+
+                $("#today_users_lunch input").click(fill_email_text);
+
+                {% if need_to_show_message_on_ready %}
+                    console.debug("show_message_on_ready");
+
+                    var message_text = '{{ message }}';
+
+                    try {
+                        $("#send_email").notify(
+                            message_text,
+                            {
+                                position: "right top",
+                                className: "success",
+                                autoHideDelay: 3000,
+                            }
+                        );
+
+                    } catch (err) {
+                        alert(message_text);
+                        console.error("При показе уведомления возникла ошибка:\n" + err);
+                    }
+
+                {% endif %}
+
+                document.getElementById('send_email').onclick = function() {
+                    console.debug("Отправка письма");
+                    var message_text = "Отправляю письмо";
+
+                    try {
+                        $("#send_email").notify(
+                            message_text,
+                            {
+                                position: "right top",
+                                className: "success",
+                                autoHideDelay: 3000,
+                            }
+                        );
+
+                    } catch (err) {
+                        alert(message_text);
+                        console.error("При показе уведомления возникла ошибка:\n" + err);
+                    }
+                }
+
+                $('#email_text').bind('input propertychange', enabled_send_email_button);
+            });
+
+        </script>
+    </head>
+
+    <body>
+        <!--<div class="ui-layout-center" style="justify-content: center;">-->
+        <div>
+            <table class="base" id="today_users_lunch">
+                <caption><br>{{ title }}<br><br></caption>
+                <tr>
+                    <th class="header">user_ip</th>
+                    <th class="header">name</th>
+                    <th class="header">lunch_id</th>
+                    <th class="header">order</th>
+                    <th class="header">last_online_date</th>
+                    <th class="header">last_select_lunch_date</th>
+                </tr>
+
+                {% if users|length == 0 %}
+                    <tr>
+                        <td colspan="6" align="center">Заказов нет.</td>
+                    </tr>
+                {% else %}
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.user_ip }}</td>
+                            <td>{{ user.name }}</td>
+                            <td>{{ user.lunch_id }}</td>
+                            <td>{{ user.order }}</td>
+                            <td>{{ user.last_online_date }}</td>
+                            <td>{{ user.last_select_lunch_date }}</td>
+                        </tr>
+
+                        {% if user.get_user_lunchs_list()|length > 0 or user.has_additionally() %}
+                            <tr>
+                                <td>
+                                    {% if user_online_date is none %}
+                                        <input type="checkbox" value="{{ user.get_user_lunchs_text() }}" checked/>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0px 0px 0px 0px" colspan="5">
+                                    <table style="width: 100%; border: 2px solid white; border-collapse: collapse;">
+                                        <tr>
+                                            <th class="header">id</th>
+                                            <th class="header">Название</th>
+                                            <th class="header">Вес</th>
+                                            <th class="header">Цена</th>
+                                        </tr>
+
+                                        {% for lunch in user.get_user_lunchs_list() %}
+                                            <tr>
+                                                <td>{{ lunch.id }}</td>
+                                                <td>{{ lunch.name }}</td>
+                                                <td>{{ lunch.weight }}</td>
+                                                <td>{{ lunch.price }}</td>
+                                            </tr>
+                                        {% endfor %}
+
+                                        {% if user.has_additionally() %}
+                                            <tr>
+                                                <td style="white-space:pre" colspan="4">{{ user.additionally }}</td>
+                                            </tr>
+                                        {% endif %}
+                                    </table>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </table>
+        </div>
+
+        {% if user_online_date is none %}
+            <div style="height: 10px;"></div>
+
+            <!-- Для расположения по горизонтали -->
+            <div style="display:flex; justify-content: flex-start;">
+                <div style="float: left;">
+                <!--<div class="ui-layout-east" style="float: left;">-->
+                    <form method="post">
+                        <p>Письмо:</p>
+                        <textarea id="email_text" rows="10" cols="45" name="email_text"></textarea><br>
+                        <input id="send_email" type="submit" value="Отправить">
+                    </form>
+                </div>
+
+                <div style="float: left; width: 20px;"></div>
+                <div style="float: left;">
+                    <table class="mail_info">
+                        <tr><td>Отправитель: </td><td>{{ sender }}</td></tr>
+                        <tr><td>Получатель: </td><td>{{ to_email }}</td></tr>
+
+                        {% if to_cc_emails|length > 0 %}
+                            <tr>
+                                {% if to_cc_emails|length == 1 %}
+                                    <td>Получатель копии: </td>
+                                    <td>{{ to_cc_emails[0] }}</td>
+                                {% else %}
+                                    <td>Получатели копии: </td>
+                                    <td>
+                                        {% for email in to_cc_emails %}
+                                            {{ email }} <br/>
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </body>
+</html>
